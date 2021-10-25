@@ -18,11 +18,8 @@ import pickle
 from PIL import Image
 
 
-# In[32]:
 
 
-#Function  return plot of all time series in data original, 
-#note: trả về 1 mảng các điểm ảnh( để khi cần thì có thể lưu vào DB ở dạng Blob), muốn show ảnh ra, call function Show_Image
 def Visualize_Data(data_input,col_indx):
     column=data_input.drop(col_indx,axis=1).columns.tolist()
     row=len(column)
@@ -43,10 +40,7 @@ def Visualize_Data(data_input,col_indx):
     return  im_pkl
 
 
-# In[33]:
-
-
-#Function detect outlier in each time series
+# detect outlier in each time series
 def Detect_Outlier_Data(data_columns,MethodOutliers,WhisForBoxplot):
     #if data_columns is numeric
     if (data_columns.dtypes=='float64' or data_columns.dtypes=='int64'):
@@ -60,13 +54,9 @@ def Detect_Outlier_Data(data_columns,MethodOutliers,WhisForBoxplot):
             return list([])
 
 
-# In[34]:
-
-
-# Function replace outlier , (use mean or median)
+#  replace outlier , (use mean or median)
 def Replace_Outlier_Data(data_input,MethodOutliers,WhisForBoxplot,MethodReplace):
     numeric_features = list(data_input.select_dtypes(include=['int64', 'float64']).columns)
-    #xac dinh va thay thế outlier trong từng chuỗi thời gian của dữ liệu gốc
     if MethodOutliers=='boxplot':
         for i in range(len(numeric_features)):
             list_outliers_of_columns_numeric=Detect_Outlier_Data(data_input[numeric_features[i]],MethodOutliers,WhisForBoxplot)
@@ -78,10 +68,7 @@ def Replace_Outlier_Data(data_input,MethodOutliers,WhisForBoxplot,MethodReplace)
              data_input=data_input
 
 
-# In[35]:
-
-
-# Function  Test Granger_Causation (kieems dinh nhan qua)
+#Test Granger_Causation (kieems dinh nhan qua)
 def Granger_Causation_Matrix(data_input,test='ssr_chi2test',maxlag=8):
     variables=data_input.columns.to_list()
     data= pd.DataFrame(np.zeros((len(variables), len(variables))), columns=variables, index=variables)
@@ -99,7 +86,7 @@ def Granger_Causation_Matrix(data_input,test='ssr_chi2test',maxlag=8):
 # In[36]:
 
 
-#Function Test Stationary
+# Test Stationary
 def Adfuller_Test(data_input, signif=0.05, verbose=False):
     result=[]
     for name, series in data_input.iteritems():
@@ -115,11 +102,6 @@ def Adfuller_Test(data_input, signif=0.05, verbose=False):
     return df
 
 
-# In[37]:
-
-
-"""Function thực hiện sai phân để thu được chuỗi dừng nếu kết quả kiểm định  
-ADFcho rằng chuỗi là ko dừng,  sai phân tối đa là 3 lần"""
 def Differenced_Data(data_input,signif=0.05,verbose=False):
     result_adf= Adfuller_Test(data_input, signif=0.05, verbose=False)
     check=result_adf['ResultADF'].tolist()
@@ -149,11 +131,6 @@ def Differenced_Data(data_input,signif=0.05,verbose=False):
         return [data_input,result_adf,order_diff]
 
 
-# In[38]:
-
-
-"""Function đảo ngược lại giá trị dự báo để thu được giá trị dự báo thực tế, 
-do khi model forecast thì dữ liệu dự báo đang ở trạng thái đã sai phân"""
 def Invert_Transform(data_train,data_forecast,order_diff):
     if order_diff==3:
         Second_diff=True
@@ -182,10 +159,8 @@ def Invert_Transform(data_train,data_forecast,order_diff):
     return data_fc
 
 
-# In[39]:
 
-
-#function visualize result forecast vs actual
+#visualize result forecast vs actual
 def Visualize_Data_Forecast(data_train,data_test,data_forecast,var_forecast,n_test):
     #draw all series
     fig=plt.figure(figsize=(12,10)) # can edit figure size
@@ -230,7 +205,6 @@ def Visualize_Data_Forecast(data_train,data_test,data_forecast,var_forecast,n_te
     return [im_pkl,im2_pkl]
 
 
-# In[40]:
 
 
 def Show_Image(w,h,image):
@@ -258,7 +232,7 @@ def Forecast_Accuracy(data_forecast,data_test):
     return res_ac
 
 
-# In[42]:
+
 
 
 def Model_VAR(data_input,MethodOutliers,WhisForBoxplot,MethodReplace,Maxlag,Test_Size,col_indx,var_forecast):
@@ -314,14 +288,11 @@ def Model_VAR(data_input,MethodOutliers,WhisForBoxplot,MethodReplace,Maxlag,Test
     for col, val in zip(x_train_tmp_diff.columns,test_resid):
         resid_ar.append([col,round(val, 2)])
     res_test_resid=pd.DataFrame(resid_ar,columns=['VARIABLE','Value_DurbinWatson'])
-    #Dự báo cho mốc thời gian mới
-    '''--> Input data for forecasting test , lay lag_order giá trị trước đó của tập train để làm đầu vào thực hiện dự báo 
-    cho tập test'''
+    '''--> Input data for forecasting test 
     forecast_input = x_train_tmp_diff.values[-lag_order:]
     '''--> Forecast for x_test'''
     fc = model_var.forecast(y=forecast_input, steps=n_test)
-    res_all_forecast_diff = pd.DataFrame(fc, index=data_input_tmp.index[-n_test:], columns=x_train_tmp_diff.columns + '_'+str(order_diff)+'d')#kết quả dự báo cho tất cả các chuỗi thời gian
-    '''--> Đảo ngược sai phân để lấy kết quả dự báo gốc'''
+    res_all_forecast_diff = pd.DataFrame(fc, index=data_input_tmp.index[-n_test:], columns=x_train_tmp_diff.columns + '_'+str(order_diff)+'d')
     res_all_forecast_orinigal=Invert_Transform(x_train_tmp, res_all_forecast_diff,order_diff)
     col=x_train_tmp.columns
     list_col_fc=[]
@@ -336,7 +307,6 @@ def Model_VAR(data_input,MethodOutliers,WhisForBoxplot,MethodReplace,Maxlag,Test
     res_forecast_test=res_all_forecast_orinigal[var_ar]   
     #Visualize results Forecast vs Actuals
     res_plot_fc=Visualize_Data_Forecast(x_train_tmp,x_test_tmp,res_all_forecast_orinigal,var_forecast,n_test)
-    '''--> Đồ thị kết quả dự báo và thực tế cho tất cả các chuỗi  thời gian co trong data'''
     res_plot_fc_all= res_plot_fc[0]
     res_plot_fc_all=Show_Image(800,800,res_plot_fc_all)
     '''--> Plot results forecast vs actuals  for time series in var_forecast '''
@@ -346,12 +316,10 @@ def Model_VAR(data_input,MethodOutliers,WhisForBoxplot,MethodReplace,Maxlag,Test
     res_accuracy= Forecast_Accuracy(res_all_forecast_orinigal,x_test_tmp)
     '''--> Accuaracy  of all variable in var_forecast:'''
     res_accuracy_2=res_accuracy[res_accuracy['VARIABLE_TEST'].isin(var_forecast)].reset_index(drop=True)
-    #LƯU LẠI MODEL vao thu muc nao do để sử dụng
-    '''C1: Lưu lại model vào thư mục nào đó để sử dụng, dùng C1 khi ko cần lưu vào DB'''
+
     #pickle.dump(model_var, open('C:/Users/Administrator/Downloads/code_model-FSS/SVM_inf/finalized_model.sav', 'wb'))
     #--> show model dùng lệnh: 
     #loaded_model = pickle.load(open('C:/Users/Administrator/Downloads/code_model-FSS/SVM_inf/finalized_model.sav', 'rb'))
-    '''C2: Lưu model phục vụ cho việc đẩy vào DB được'''
     model_use=pickle.dumps(model_var)
     return[model_use,res_visualize_data,res_test_granger,res_test_adf,res_model_var,res_test_resid, res_all_forecast_orinigal,res_forecast_test, res_plot_fc_all,res_plot_var_fc,res_accuracy, res_accuracy_2]
     
